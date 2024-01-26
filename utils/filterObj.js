@@ -7,3 +7,4 @@ filterObj = (obj, ...allowedFields) => {
 }
 
 module.exports = filterObj;
+
