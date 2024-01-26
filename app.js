@@ -1,4 +1,5 @@
 const express = require("express");  // Web Framework for Node.js
+const routes = require("./routes/index"); // Routes for the API calls
 const morgan = require("morgan");  // HTTP request logger middleware for node.js
 
 
@@ -37,6 +38,6 @@ const limiter = rateLimit({
 })
 app.use("/tawk", limiter);
 
-
+app.use(routes);
 
 module.exports = app;
