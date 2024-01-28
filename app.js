@@ -1,7 +1,8 @@
 const express = require("express");  // Web Framework for Node.js
 const routes = require("./routes/index"); // Routes for the API calls
 const morgan = require("morgan");  // HTTP request logger middleware for node.js
-
+const dotenv = require("dotenv"); // Package to access Environment Variables
+dotenv.config({path: "./config.env"});
 
 const rateLimit = require("express-rate-limit");  // Basic rate-limiting middleware for Express
 const helmet = require("helmet");  // Helmet helps secure Express apps by setting HTTP response headers.
@@ -36,7 +37,7 @@ const limiter = rateLimit({
     windowMs: 60 * 60 * 1000,  // In one hour,
     message: "Too many requests from this IP, Please try again in an hour",
 })
-app.use("/tawk", limiter);
+app.use("/", limiter);
 
 app.use(routes);
 

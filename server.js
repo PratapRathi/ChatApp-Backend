@@ -22,7 +22,7 @@ const http = require("http");
 const server = http.createServer(app);  // Using Node 'http' module in place of Express for creating server
 
 const port = process.env.PORT || 8000;
-app.listen(port, ()=>{
+server.listen(port, ()=>{
     console.log("App is running on port "+ port);
 });
 
