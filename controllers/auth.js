@@ -148,7 +148,16 @@ exports.login = async (req, res, next) => {
         if (!userDoc || !(await userDoc.correctPassword(password, userDoc.password))) {
             res.status(400).json({
                 status: "error",
-                message: "Email or Password in incorrect"
+                message: "Email or Password is incorrect"
+            })
+            return
+        }
+
+        // If user is not verified and tried to login
+        if (!userDoc.verified){
+            res.status(400).json({
+                status: "error",
+                message: "User not Verified! Please verify with OTP"
             })
             return
         }
@@ -220,7 +229,7 @@ exports.forgotPassword = async (req, res, next) => {
         if (!user) {
             res.status(400).json({
                 status: "error",
-                message: "User does not exist with this Email"
+                message: `User does not exist with this Email`
             })
             return;
         }
@@ -237,7 +246,7 @@ exports.forgotPassword = async (req, res, next) => {
 
             res.status(200).json({
                 status: "success",
-                message: "Reset password link sent to the Email",
+                message: `Reset password link sent to the ${user.email}`,
             });
 
         } catch (error) {
