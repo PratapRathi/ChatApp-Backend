@@ -12,3 +12,23 @@ exports.upateMe = async(req,res,next) => {
         message: "Profile updated successfully!"
     })
 }
+
+exports.getUsers = async (req,res,next)=>{
+    const all_users = await User.find({
+        verified:"true",
+    }).select("firstName lastName _id");
+
+    this_user = req.user;
+
+    const remaining_user = all_users.filter(
+        (user)=> 
+        !this_user.friends.include(user._id) && 
+        user._id.toString() !== req.user._id.toString()
+    );
+
+    res.status(200).json({
+        status:"success",
+        data: remaining_user,
+        message: "Users fethed successfully"
+    })
+}
