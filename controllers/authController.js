@@ -1,7 +1,7 @@
 const dotenv = require("dotenv");
 dotenv.config({ path: "./config.env" });
 const jwt = require("jsonwebtoken");
-const User = require("../models/user");
+const User = require("../models/user.js");
 const filterObj = require("../utils/filterObj.js");
 const otpGenerator = require('otp-generator');
 const crypto = require('crypto');
@@ -123,6 +123,7 @@ exports.verifyOTP = async (req, res, next) => {
         res.status(200).json({
             status: "success",
             message: "OTP verified successfully!",
+            user_id: user._id,
             token
         });
     } catch (error) {
@@ -167,6 +168,7 @@ exports.login = async (req, res, next) => {
         res.status(200).json({
             status: "success",
             message: "Logged in successfully",
+            user_id: userDoc._id,
             token
         });
     } catch (error) {
@@ -194,7 +196,7 @@ exports.protect = async (req, res, next) => {
         }
 
         // 2) Verfication of token
-        const decoded = promisify(jwt.verify)(token, process.env.JWT_SECRET);
+        const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
         // 3) Check if user still exist
         const this_user = await User.findById(decoded.userId);
@@ -203,6 +205,7 @@ exports.protect = async (req, res, next) => {
                 status: "error",
                 message: "User doesn't exist",
             });
+            return;
         }
 
         // 4) check if user changed their password after token was issued
@@ -211,6 +214,7 @@ exports.protect = async (req, res, next) => {
                 status: "error",
                 message: "User changed the password! Please login again",
             });
+            return;
         }
 
         // 5) Giving control to next middleware with decoded user updated in req
@@ -296,6 +300,7 @@ exports.resetPassword = async (req, res, next) => {
         res.status(200).json({
             status: "success",
             message: "Password reset successfully",
+            user_id: user._id,
             token
         });
     } catch (error) {
