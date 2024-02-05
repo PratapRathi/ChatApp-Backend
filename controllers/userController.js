@@ -22,14 +22,14 @@ exports.getUsers = async (req,res,next)=>{
     this_user = req.user;
 
     const remaining_user = all_users.filter( (user) => 
-        !this_user.friends.include(user._id) && 
+        !this_user.friends.includes(user._id) && 
         user._id.toString() !== req.user._id.toString()
     );
 
     res.status(200).json({
         status:"success",
         data: remaining_user,
-        message: "Users fethed successfully"
+        message: "Users fetched successfully"
     })
 }
 

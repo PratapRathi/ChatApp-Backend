@@ -12,6 +12,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, "Last Name is required"]
     },
+    about: {
+        type: String,
+    },
     avatar: {
         type: String,
     },
@@ -64,7 +67,11 @@ const userSchema = new mongoose.Schema({
             type: mongoose.Schema.ObjectId,
             ref: "User"
         }
-    ]
+    ],
+    status: {
+        type: String,
+        enum: ["Online", "Offline"]
+    }
 })
 
 

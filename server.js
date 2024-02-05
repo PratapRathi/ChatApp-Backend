@@ -23,6 +23,7 @@ process.on("uncaughtException", (err) => {
 const http = require("http");
 const FriendRequest = require("./models/friendRequest");
 const { send } = require("process");
+const path = require("path");
 const server = http.createServer(app);  // Using Node 'http' module in place of Express for creating server
 
 // Creating instance of socket.io with http server
@@ -38,26 +39,25 @@ server.listen(port, () => {
     console.log("App is running on port " + port);
 });
 
+
+// WebSocket Instance
 io.on("connection", async (socket) => {
-    console.log(JSON.stringify(socket.handshake.query));
+    console.log("user connected", JSON.stringify(socket.handshake.query));
     // console.log(socket);
     const user_id = socket.handshake.query["user_id"];
     const socket_id = socket.id;
-    console.log("user connected", socket_id)
     if (Boolean(user_id)) {
-        await User.findByIdAndUpdate(user_id, {})
+        await User.findByIdAndUpdate(user_id, {socket_id, status:"Online"})
     }
 
     // we can write our socket events here
-
     socket.on("friend_request", async (data) => {
-        console.log(data.to);  // here "to" is the id of recipient
-
+        // here "to" is the id of recipient
         // data => {to, from}
-        const to = User.findById(data.to).select("socket_id");
-        const from = User.findById(data.from).select("socket_id");
+        const to = await User.findById(data.to).select("socket_id");
+        const from = await User.findById(data.from).select("socket_id");
 
-        // TODO => create a friend request
+        //  create a friend request
         await FriendRequest.create({
             sender: data.from,
             recipient: data.to
@@ -69,11 +69,11 @@ io.on("connection", async (socket) => {
         })
         // Emit event => "request_sent"
         io.to(from.socket_id).emit("request_sent", {
-            message: "Request Sent Successfully"
+            message: "Friend Request Sent Successfully"
         })
     })
 
-    socket.on("accep_request", async (data) => {
+    socket.on("accept_request", async (data) => {
         console.log(data);
         // request_id
         const request_doc = await FriendRequest.findById(data.request_id);
@@ -101,7 +101,50 @@ io.on("connection", async (socket) => {
         });
     })
 
-    socket.on("end", function(){
+    // Handle Text/Link messages
+    socket.on("text_message", (data)=>{
+        console.log("Received message:- ", data)
+
+        // data = {"to", "from", "text"}
+
+        // Create a new conversation if it does'nt exist already or add a new message to the message array
+
+        // save to DB
+
+        // emit incoming_message -> to user
+
+        // emit outgoing_message -> from user
+    })
+
+    socket.on("file_message", (data)=>{
+        console.log("Received message:- ", data)
+
+        // data = {"to", "from", "text", "file"}
+
+        // get the file extension
+        const fileExtension = path.extname(data.file.name);
+
+        // generate a unique file-name
+        const fileName = `${Date.now()}_${Math.floor(Math.random()*10000)}${fileExtension}`
+
+        // Upload file to AWS S3
+
+        // Create a new conversation if it does'nt exist already or add a new message to the message array
+
+        // save to DB
+
+        // emit incoming_message -> to user
+
+        // emit outgoing_message -> from user
+    })
+
+    socket.on("end", async(data)=>{
+        // Find user by ID and set status to offline
+        if(data.user_id){
+            await User.findByIdAndUpdate(data.user_id, {status:"Offline"})
+        }
+        // TODO => Broadcast user is disconnected
+
         console.log("Closing connection");
         socket.disconnect(0);
     })
