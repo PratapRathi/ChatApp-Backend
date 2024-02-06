@@ -24,6 +24,7 @@ const http = require("http");
 const FriendRequest = require("./models/friendRequest");
 const { send } = require("process");
 const path = require("path");
+const OneToOneMessage = require("./models/OneToOneMessage");
 const server = http.createServer(app);  // Using Node 'http' module in place of Express for creating server
 
 // Creating instance of socket.io with http server
@@ -47,7 +48,7 @@ io.on("connection", async (socket) => {
     const user_id = socket.handshake.query["user_id"];
     const socket_id = socket.id;
     if (Boolean(user_id)) {
-        await User.findByIdAndUpdate(user_id, {socket_id, status:"Online"})
+        await User.findByIdAndUpdate(user_id, { socket_id, status: "Online" })
     }
 
     // we can write our socket events here
@@ -101,22 +102,75 @@ io.on("connection", async (socket) => {
         });
     })
 
-    // Handle Text/Link messages
-    socket.on("text_message", (data)=>{
-        console.log("Received message:- ", data)
+    socket.on("get_direct_conversations", async ({ user_id }, callback) => {
+        const existing_conversation = await OneToOneMessage.find({
+            participants: { $all: [user_id] }
+        }).populate("participants", "firstName lastName _id email status");
+        callback(existing_conversation);
+    });
 
-        // data = {"to", "from", "text"}
+    socket.on("start_conversation", async (data) => {
+        // data => {to,from}
+        const { to, from } = data;
+        // Check if there is any existing conversation between these 2 users
+        const existing_conversation = await OneToOneMessage.find({
+            participants: { $size: 2, $all: [to, from] }
+        }).populate("participants", "firstName lastName _id email status");
+        
+        // If there is no existing_conversation
+        if(existing_conversation.length === 0){
+            let new_chat = await OneToOneMessage.create({
+                participants:[to, from]
+            })
+            new_chat = await OneToOneMessage.findById(new_chat._id).populate("participants", "firstName lastName _id email status");
+            console.log(new_chat);
+            socket.emit("start_chat", new_chat);
+        }
+        // If there is existing_conversation
+        else{
+            socket.emit("start_chat", existing_conversation[0]);
+        }
 
-        // Create a new conversation if it does'nt exist already or add a new message to the message array
+    });
 
-        // save to DB
 
-        // emit incoming_message -> to user
-
-        // emit outgoing_message -> from user
+    //
+    socket.on("get_messages", async(data,callback) => {
+        const messages = await OneToOneMessage.findById(data.conversation_id).select("messages");
+        callback(messages);
     })
 
-    socket.on("file_message", (data)=>{
+
+    // Handle Text/Link messages
+    socket.on("text_message", async(data) => {
+
+        // data = {to, from, message, conversation_id }
+        const {to, from, message, conversation_id } = data;
+
+        const to_user = await User.findById(to);
+        const from_user = await User.findById(from);
+
+        const new_message = {to, from, type:"text", text:message, created_at: Date.now()};
+
+        // Create a new conversation if it does'nt exist already or add a new message to the message array
+        const chat = await OneToOneMessage.findById(conversation_id);
+        chat.messages.push(new_message);
+        // save to DB
+        await chat.save({});
+
+        // emit incoming_message -> to user
+        io.to(to_user.socket_id).emit("new_text_message", {
+            conversation_id,
+            message: new_message
+        })
+        // emit outgoing_message -> from user
+        io.to(from_user.socket_id).emit("new_text_message", {
+            conversation_id,
+            message: new_message
+        })
+    })
+
+    socket.on("file_message", (data) => {
         console.log("Received message:- ", data)
 
         // data = {"to", "from", "text", "file"}
@@ -125,7 +179,7 @@ io.on("connection", async (socket) => {
         const fileExtension = path.extname(data.file.name);
 
         // generate a unique file-name
-        const fileName = `${Date.now()}_${Math.floor(Math.random()*10000)}${fileExtension}`
+        const fileName = `${Date.now()}_${Math.floor(Math.random() * 10000)}${fileExtension}`
 
         // Upload file to AWS S3
 
@@ -138,10 +192,10 @@ io.on("connection", async (socket) => {
         // emit outgoing_message -> from user
     })
 
-    socket.on("end", async(data)=>{
+    socket.on("end", async (data) => {
         // Find user by ID and set status to offline
-        if(data.user_id){
-            await User.findByIdAndUpdate(data.user_id, {status:"Offline"})
+        if (data.user_id) {
+            await User.findByIdAndUpdate(data.user_id, { status: "Offline" })
         }
         // TODO => Broadcast user is disconnected
 

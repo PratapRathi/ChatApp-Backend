@@ -5,7 +5,7 @@ const oneToOneMessageSchema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: "User"
     }],
-    message: [{
+    messages: [{
         to: {
             type: mongoose.Schema.ObjectId,
             ref: "User"
@@ -16,7 +16,7 @@ const oneToOneMessageSchema = new mongoose.Schema({
         },
         type: {
             type: String,
-            enum: ["Text", "Media", "Document", "Link"]
+            enum: ["text", "media", "document", "link"]
         },
         created_at: {
             type: Date,
