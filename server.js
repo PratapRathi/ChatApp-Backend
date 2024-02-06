@@ -35,7 +35,7 @@ const io = new Server(server, {
     }
 })
 
-const port = process.env.PORT || 8000;
+const port = 3500;
 server.listen(port, () => {
     console.log("App is running on port " + port);
 });
